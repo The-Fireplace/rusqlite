@@ -42,7 +42,7 @@ backup = []
 # sqlite3_blob
 blob = []
 # Prepared statements cache by connection (like https://www.sqlite.org/tclsqlite.html#cache)
-cache = ["hashlink"]
+cache = ["hashlink", "rustc-hash"]
 # sqlite3_create_collation_v2
 collation = []
 # sqlite3_create_function_v2
@@ -152,6 +152,7 @@ time = { version = "0.3.36", features = [
 bitflags = "2.6.0"
 # LRU cache of statement
 hashlink = { version = "0.11", optional = true }
+rustc-hash = { version = "2.1.1", optional = true }
 # Chrono Date/Time/Timestamp persistence
 chrono = { version = "0.4.38", optional = true, default-features = false, features = [
     "clock",

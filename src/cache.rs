@@ -6,6 +6,7 @@ use hashlink::LruCache;
 use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
+use rustc_hash::FxBuildHasher;
 
 impl Connection {
     /// Prepare a SQL statement for execution, returning a previously prepared
@@ -58,7 +59,7 @@ impl Connection {
 
 /// Prepared statements LRU cache.
 #[derive(Debug)]
-pub struct StatementCache(RefCell<LruCache<Arc<str>, RawStatement>>);
+pub struct StatementCache(RefCell<LruCache<Arc<str>, RawStatement, FxBuildHasher>>);
 
 unsafe impl Send for StatementCache {}
 
@@ -118,7 +119,7 @@ impl StatementCache {
     /// Create a statement cache.
     #[inline]
     pub fn with_capacity(capacity: usize) -> Self {
-        Self(RefCell::new(LruCache::new(capacity)))
+        Self(RefCell::new(LruCache::with_hasher(capacity, FxBuildHasher::default())))
     }
 
     #[inline]
