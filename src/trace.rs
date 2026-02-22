@@ -109,7 +109,14 @@ impl StmtRef<'_> {
     }
     /// SQL text
     pub fn sql(&self) -> Cow<'_, str> {
-        unsafe { CStr::from_ptr(ffi::sqlite3_sql(self.ptr)).to_string_lossy() }
+        let sql = unsafe { ffi::sqlite3_sql(self.ptr) };
+
+        if sql.is_null() {
+            return Cow::default();
+        }
+
+        // Safety: sql is a valid pointer to a cstr returned by sqlite3
+        unsafe { CStr::from_ptr(sql).to_string_lossy() }
     }
     /// Expanded SQL text
     pub fn expanded_sql(&self) -> Option<String> {
@@ -157,13 +164,12 @@ impl Connection {
         }
 
         let c = self.db.borrow_mut();
-        match trace_fn {
-            Some(f) => unsafe {
-                ffi::sqlite3_trace(c.db(), Some(trace_callback), f as *mut c_void);
-            },
-            None => unsafe {
-                ffi::sqlite3_trace(c.db(), None, ptr::null_mut());
-            },
+        unsafe {
+            ffi::sqlite3_trace(
+                c.db(),
+                trace_fn.as_ref().map(|_| trace_callback as _),
+                trace_fn.map_or_else(ptr::null_mut, |f| f as *mut c_void),
+            );
         }
     }
 
@@ -188,12 +194,13 @@ impl Connection {
         }
 
         let c = self.db.borrow_mut();
-        match profile_fn {
-            Some(f) => unsafe {
-                ffi::sqlite3_profile(c.db(), Some(profile_callback), f as *mut c_void)
-            },
-            None => unsafe { ffi::sqlite3_profile(c.db(), None, ptr::null_mut()) },
-        };
+        unsafe {
+            ffi::sqlite3_profile(
+                c.db(),
+                profile_fn.as_ref().map(|_| profile_callback as _),
+                profile_fn.map_or_else(ptr::null_mut, |f| f as *mut c_void),
+            );
+        }
     }
 
     /// Register or clear a trace callback function
@@ -234,14 +241,13 @@ impl Connection {
             ffi::SQLITE_OK
         }
         let c = self.db.borrow_mut();
-        if let Some(f) = trace_fn {
-            unsafe {
-                ffi::sqlite3_trace_v2(c.db(), mask.bits(), Some(trace_callback), f as *mut c_void);
-            }
-        } else {
-            unsafe {
-                ffi::sqlite3_trace_v2(c.db(), 0, None, ptr::null_mut());
-            }
+        unsafe {
+            ffi::sqlite3_trace_v2(
+                c.db(),
+                mask.bits(),
+                trace_fn.as_ref().map(|_| trace_callback as _),
+                trace_fn.map_or_else(ptr::null_mut, |f| f as *mut c_void),
+            );
         }
     }
 }
